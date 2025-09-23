@@ -5,10 +5,9 @@ import random
 
 fake = Faker()
 def seed_data():
-    #app = create_app()
     with app.app_context():
         # Create all tables
-        db.create_all()
+        #db.create_all()
         
         # Clear existing data
         Donations.query.delete()
@@ -23,10 +22,11 @@ def seed_data():
         for _ in range(5):
             user = User(
                 name=fake.name(),
-                email=fake.email(),
-                password_hash="admin@2020",
-                designation=fake.random_choices(['Organizer', 'Donor', 'Volunteer'])
+                email=fake.unique.email(),
+                designation=random.choice(['Organisation', 'Individual']),
+                password_hash="admin@2020"
             )
+             
             users.append(user)
         
         db.session.add_all(users)
@@ -36,11 +36,11 @@ def seed_data():
         campaigns = []
         for _ in range(8):
             campaign = Campaign(
-                category=fake.random_choices(['Education', 'Health', 'Environment']),
+                category=random.choice(['Education', 'Health', 'Environment']),
                 description=fake.text(max_nb_chars=200),
                 targetamount=fake.random_int(min=1000, max=50000),
                 raisedamount=fake.random_int(min=0, max=25000),
-                user_id=fake.random_choice(users).id
+                user_id=random.choice(users).id
             )
             campaigns.append(campaign)
         
@@ -52,10 +52,10 @@ def seed_data():
         for _ in range(15):
             donation = Donations(
                 title=fake.sentence(nb_words=3),
-                paymentmethod=fake.random_choices(['Credit Card', 'PayPal', 'Bank Transfer']),
+                paymentmethod=random.choice(['Credit Card', 'PayPal', 'Bank Transfer']),
                 amount=fake.random_int(min=10, max=1000),
-                user_id=fake.random_choice(users).id,
-                campaign_id=fake.random_choice(campaigns).id
+                user_id=random.choice(users).id,
+                campaign_id=random.choice(campaigns).id
             )
             donations.append(donation)
         
@@ -68,7 +68,7 @@ def seed_data():
             update = Updates(
                 title=fake.sentence(nb_words=4),
                 description=fake.text(max_nb_chars=300),
-                campaign_id=fake.random_choice(campaigns).id
+                campaign_id=random.choice(campaigns).id
             )
             updates.append(update)
         
