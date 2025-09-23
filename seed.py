@@ -7,7 +7,6 @@ fake = Faker()
 def seed_data():
     with app.app_context():
         # Create all tables
-        #db.create_all()
         
         # Clear existing data
         Donations.query.delete()

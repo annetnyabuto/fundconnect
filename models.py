@@ -17,17 +17,17 @@ class User(db.Model):
     __tablename__ = "users"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    email = db.Column(db.String)
+    name = db.Column(db.String, nullable=False)
+    email = db.Column(db.String, nullable=False)
     _password_hash = db.Column(db.String, nullable=False)
-    designation = db.Column(db.String)
+    designation = db.Column(db.String, nullable=False)
 
     
     campaigns = db.relationship('Campaign', backref='user')
     donations = db.relationship('Donations', backref='user')
 
     def __repr__(self):
-        return f'<User {self.id}, {self.name}, {self.email}, {self.password}, {self.designation}>'
+        return f'<User {self.id}, {self.name}, {self.email}, {self.password_hash}, {self.designation}>'
     
 
     @hybrid_property
