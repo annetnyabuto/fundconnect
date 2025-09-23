@@ -8,8 +8,9 @@ flask-sqlalchemy = "*"
 flask = "*"
 flask-migrate = "*"
 sqlalchemy-serializer = "*"
-faker = "*"
 flask-restful = "*"
+faker = "*"
+flask-bcrypt = "*"
 
 [dev-packages]
 
