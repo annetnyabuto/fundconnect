@@ -16,13 +16,12 @@ CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Fundconnect.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = 'supersecretkey'
 
 db.init_app(app)
 migrate.init_app(app, db)
 api=Api(app)
 bcrypt = Bcrypt(app)
-
-app.config['JWT_SECRET_KEY'] = 'supersecretkey'
 
 def token_required(f):
     @wraps(f)
@@ -71,17 +70,17 @@ class Users(Resource):
     @token_required
     def get(self, current_user):
         users = User.query.all()
-        return [
-            {
-                "id": user.id,
-                "name": user.name,
-                "email": user.email,
-                "designation": user.designation
-            } for user in users
-        ], 200
+        return [user.to_dict() for user in users], 200
     
     def post(self):
         data = request.get_json()
+        
+        if not data or not data.get('name') or not data.get('password'):
+            return {'error': 'Name and password are required'}, 400
+            
+        if User.query.filter_by(name=data['name']).first():
+            return {'error': 'Username already exists'}, 409
+            
         new_user = User(
             name=data['name'], 
             email=data.get('email'),
@@ -96,12 +95,7 @@ class UserDetail(Resource):
     @token_required
     def get(self, current_user, id):
         user = User.query.get_or_404(id)
-        return {
-            "id": user.id,
-            "name": user.name,
-            "email": user.email,
-            "designation": user.designation
-        }, 200
+        return user.to_dict(), 200
     
     @token_required
     def patch(self, current_user, id):
@@ -137,17 +131,19 @@ class Logout(Resource):
 class Campaigns(Resource):
     @token_required
     def get(self, current_user):
-        campaigns = Campaign.query.all()
-        return [
-            {
-                "id": campaign.id,
-                "category": campaign.category,
-                "description": campaign.description,
-                "targetamount": campaign.targetamount,
-                "raisedamount": campaign.raisedamount,
-                "user_id": campaign.user_id
-            } for campaign in campaigns
-        ], 200
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        campaigns = Campaign.query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        return {
+            'campaigns': [campaign.to_dict() for campaign in campaigns.items],
+            'total': campaigns.total,
+            'pages': campaigns.pages,
+            'current_page': page
+        }, 200
     
     @token_required
     def post(self, current_user):
@@ -167,14 +163,7 @@ class CampaignDetail(Resource):
     @token_required
     def get(self, current_user, id):
         campaign = Campaign.query.get_or_404(id)
-        return {
-            "id": campaign.id,
-            "category": campaign.category,
-            "description": campaign.description,
-            "targetamount": campaign.targetamount,
-            "raisedamount": campaign.raisedamount,
-            "user_id": campaign.user_id
-        }, 200
+        return campaign.to_dict(), 200
     
     @token_required
     def patch(self, current_user, id):
@@ -204,20 +193,17 @@ class DonationsResource(Resource):
     @token_required
     def get(self, current_user):
         donations = Donations.query.all()
-        return [
-            {
-                "id": donation.id,
-                "title": donation.title,
-                "paymentmethod": donation.paymentmethod,
-                "amount": donation.amount,
-                "user_id": donation.user_id,
-                "campaign_id": donation.campaign_id
-            } for donation in donations
-        ], 200
+        return [donation.to_dict() for donation in donations], 200
     
     @token_required
     def post(self, current_user):
         data = request.get_json()
+        
+        if not data.get('amount') or data['amount'] <= 0:
+            return {'error': 'Valid donation amount required'}, 400
+            
+        campaign = Campaign.query.get_or_404(data['campaign_id'])
+        
         new_donation = Donations(
             title=data['title'],
             paymentmethod=data['paymentmethod'],
@@ -225,6 +211,9 @@ class DonationsResource(Resource):
             user_id=current_user.id,
             campaign_id=data['campaign_id']
         )
+        
+        campaign.raisedamount = (campaign.raisedamount or 0) + data['amount']
+        
         db.session.add(new_donation)
         db.session.commit()
         return {'message': 'Donation created successfully', 'id': new_donation.id}, 201
@@ -233,14 +222,7 @@ class DonationDetail(Resource):
     @token_required
     def get(self, current_user, id):
         donation = Donations.query.get_or_404(id)
-        return {
-            "id": donation.id,
-            "title": donation.title,
-            "paymentmethod": donation.paymentmethod,
-            "amount": donation.amount,
-            "user_id": donation.user_id,
-            "campaign_id": donation.campaign_id
-        }, 200
+        return donation.to_dict(), 200
     
     @token_required
     def delete(self, current_user, id):
@@ -254,43 +236,20 @@ class CampaignDonations(Resource):
     def get(self, current_user, id):
         campaign = Campaign.query.get_or_404(id)
         donations = Donations.query.filter_by(campaign_id=id).all()
-        return [
-            {
-                "id": donation.id,
-                "title": donation.title,
-                "paymentmethod": donation.paymentmethod,
-                "amount": donation.amount,
-                "user_id": donation.user_id
-            } for donation in donations
-        ], 200
+        return [donation.to_dict() for donation in donations], 200
 
 class UserDonations(Resource):
     @token_required
     def get(self, current_user, id):
         user = User.query.get_or_404(id)
         donations = Donations.query.filter_by(user_id=id).all()
-        return [
-            {
-                "id": donation.id,
-                "title": donation.title,
-                "paymentmethod": donation.paymentmethod,
-                "amount": donation.amount,
-                "campaign_id": donation.campaign_id
-            } for donation in donations
-        ], 200
+        return [donation.to_dict() for donation in donations], 200
 
 class UpdatesResource(Resource):
     @token_required
     def get(self, current_user):
         updates = Updates.query.all()
-        return [
-            {
-                "id": update.id,
-                "title": update.title,
-                "description": update.description,
-                "campaign_id": update.campaign_id
-            } for update in updates
-        ], 200
+        return [update.to_dict() for update in updates], 200
     
     @token_required
     def post(self, current_user):
@@ -308,12 +267,7 @@ class UpdateDetail(Resource):
     @token_required
     def get(self, current_user, id):
         update = Updates.query.get_or_404(id)
-        return {
-            "id": update.id,
-            "title": update.title,
-            "description": update.description,
-            "campaign_id": update.campaign_id
-        }, 200
+        return update.to_dict(), 200
     
     @token_required
     def patch(self, current_user, id):
