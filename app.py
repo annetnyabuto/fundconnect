@@ -25,6 +25,10 @@ def check_authorized():
     if 'user_id' not in session\
         and request.endpoint not in ("login", "signup"):
         return {"error":"401:unauthorised"}
+
+@app.route("/")
+def index():
+    return "<h1>Fundconnect running successfully</h1>"
     
 class Login(Resource):
     def post(self):
