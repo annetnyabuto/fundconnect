@@ -19,8 +19,8 @@ class User(db.Model, SerializerMixin):
     serialize_rules = ('-_password_hash', '-campaigns.user', '-donations.user')
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String, nullable=False)
-    email = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False, unique=True)
+    email = db.Column(db.String, nullable=False, unique=True)
     _password_hash = db.Column(db.String, nullable=False)
     designation = db.Column(db.String, nullable=False)
 

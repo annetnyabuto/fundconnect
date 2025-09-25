@@ -85,6 +85,9 @@ class Users(Resource):
         if User.query.filter_by(name=data['name']).first():
             return {'error': 'Username already exists'}, 409
             
+        if data.get('email') and User.query.filter_by(email=data['email']).first():
+            return {'error': 'Email already exists'}, 409
+            
         new_user = User(
             name=data['name'], 
             email=data.get('email'),
