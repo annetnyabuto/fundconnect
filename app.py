@@ -44,6 +44,10 @@ def token_required(f):
         
         return f(current_user, *args, **kwargs)
     return decorated
+
+@app.route('/')
+def home():
+    return {'message': 'Welcome to Fundconnect'}
     
 class Login(Resource):
     def post(self):
@@ -288,6 +292,8 @@ class UpdateDetail(Resource):
         db.session.delete(update)
         db.session.commit()
         return {'message': 'Update deleted successfully'}, 200
+
+
 
 api.add_resource(Checksession,'/check', endpoint="check")
 api.add_resource(Login, '/login',endpoint="login")
