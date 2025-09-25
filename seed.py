@@ -22,10 +22,9 @@ def seed_data():
             user = User(
                 name=fake.name(),
                 email=fake.unique.email(),
-                designation=random.choice(['Organisation', 'Individual']),
-                password_hash="admin@2020"
+                designation=random.choice(['Organisation', 'Individual'])
             )
-             
+            user.set_password("admin@2020")
             users.append(user)
         
         db.session.add_all(users)

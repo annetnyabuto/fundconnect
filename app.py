@@ -134,8 +134,6 @@ class Logout(Resource):
     def post(self):
         return {'message': 'Logout successful'}, 200
     
-#campaign routes
-    
 class Campaigns(Resource):
     @token_required
     def get(self, current_user):
@@ -332,17 +330,6 @@ class UpdateDetail(Resource):
     
     @token_required
     def delete(self, current_user, id):
-        update = Updates.query.get_or_404(id)
-        db.session.delete(update)
-        db.session.commit()
-        return {'message': 'Update deleted successfully'}, 200
-        if 'description' in data:
-            update.description = data['description']
-            
-        db.session.commit()
-        return {'message': 'Update updated successfully'}, 200
-    
-    def delete(self, id):
         update = Updates.query.get_or_404(id)
         db.session.delete(update)
         db.session.commit()
