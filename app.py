@@ -16,13 +16,12 @@ CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Fundconnect.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = 'supersecretkey'
 
 db.init_app(app)
 migrate.init_app(app, db)
 api=Api(app)
 bcrypt = Bcrypt(app)
-
-app.config['JWT_SECRET_KEY'] = 'supersecretkey'
 
 def token_required(f):
     @wraps(f)
@@ -75,6 +74,13 @@ class Users(Resource):
     
     def post(self):
         data = request.get_json()
+        
+        if not data or not data.get('name') or not data.get('password'):
+            return {'error': 'Name and password are required'}, 400
+            
+        if User.query.filter_by(name=data['name']).first():
+            return {'error': 'Username already exists'}, 409
+            
         new_user = User(
             name=data['name'], 
             email=data.get('email'),
@@ -125,8 +131,19 @@ class Logout(Resource):
 class Campaigns(Resource):
     @token_required
     def get(self, current_user):
-        campaigns = Campaign.query.all()
-        return [campaign.to_dict() for campaign in campaigns], 200
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        
+        campaigns = Campaign.query.paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        return {
+            'campaigns': [campaign.to_dict() for campaign in campaigns.items],
+            'total': campaigns.total,
+            'pages': campaigns.pages,
+            'current_page': page
+        }, 200
     
     @token_required
     def post(self, current_user):
@@ -181,6 +198,12 @@ class DonationsResource(Resource):
     @token_required
     def post(self, current_user):
         data = request.get_json()
+        
+        if not data.get('amount') or data['amount'] <= 0:
+            return {'error': 'Valid donation amount required'}, 400
+            
+        campaign = Campaign.query.get_or_404(data['campaign_id'])
+        
         new_donation = Donations(
             title=data['title'],
             paymentmethod=data['paymentmethod'],
@@ -188,6 +211,9 @@ class DonationsResource(Resource):
             user_id=current_user.id,
             campaign_id=data['campaign_id']
         )
+        
+        campaign.raisedamount = (campaign.raisedamount or 0) + data['amount']
+        
         db.session.add(new_donation)
         db.session.commit()
         return {'message': 'Donation created successfully', 'id': new_donation.id}, 201
@@ -217,9 +243,7 @@ class UserDonations(Resource):
     def get(self, current_user, id):
         user = User.query.get_or_404(id)
         donations = Donations.query.filter_by(user_id=id).all()
-        return [donation.to_dict() for donation in donations], 200ion.campaign_id
-            } for donation in donations
-        ], 200
+        return [donation.to_dict() for donation in donations], 200
 
 class UpdatesResource(Resource):
     @token_required

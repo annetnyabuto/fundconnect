@@ -13,6 +13,7 @@ faker = "*"
 flask-bcrypt = "*"
 pyjwt = "*"
 flask-cors = "*"
+flask-limiter = "*"
 
 [dev-packages]
 
