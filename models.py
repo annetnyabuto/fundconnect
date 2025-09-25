@@ -44,6 +44,17 @@ class User(db.Model):
     def authenticate(self,password):
         # Added encoding since this is needed for python3
         return bcrypt.check_password_hash(self._password_hash, password.encode('utf-8'))
+    
+    def set_password(self, password):
+        self.password_hash = password
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'email': self.email,
+            'designation': self.designation
+        }
 
 
 class Campaign(db.Model):
