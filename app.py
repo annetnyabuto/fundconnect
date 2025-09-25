@@ -133,8 +133,7 @@ class Logout(Resource):
         return {'message': 'Logout successful'}, 200
     
 class CampaignsResource(Resource):
-    @token_required
-    def get(self, current_user):
+    def get(self):
         campaigns = Campaign.query.all()
         return [{
             'id': campaign.id,
