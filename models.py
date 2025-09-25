@@ -13,8 +13,10 @@ metadata = MetaData()
 db = SQLAlchemy(metadata=metadata)
 
 
-class User(db.Model):
+class User(db.Model, SerializerMixin):
     __tablename__ = "users"
+    
+    serialize_rules = ('-_password_hash', '-campaigns.user', '-donations.user')
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
@@ -22,7 +24,6 @@ class User(db.Model):
     _password_hash = db.Column(db.String, nullable=False)
     designation = db.Column(db.String, nullable=False)
 
-    
     campaigns = db.relationship('Campaign', backref='user')
     donations = db.relationship('Donations', backref='user')
 
@@ -57,8 +58,10 @@ class User(db.Model):
         }
 
 
-class Campaign(db.Model):
+class Campaign(db.Model, SerializerMixin):
     __tablename__ = "campaign"
+    
+    serialize_rules = ('-user.campaigns', '-donations.campaign', '-updates.campaign')
 
     id = db.Column(db.Integer, primary_key=True)
     category = db.Column(db.String)
@@ -66,7 +69,6 @@ class Campaign(db.Model):
     targetamount = db.Column(db.Integer)
     raisedamount = db.Column(db.Integer)
     
-    # Foreign key to User (many campaigns belong to one user)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
     donations = db.relationship('Donations', backref='campaign', lazy=True)
@@ -75,29 +77,31 @@ class Campaign(db.Model):
     def __repr__(self):
         return f'<Campaign {self.id}, {self.category}, {self.description}, {self.targetamount}, {self.raisedamount}>'
 
-class Donations(db.Model):
+class Donations(db.Model, SerializerMixin):
     __tablename__ = "donations"
+    
+    serialize_rules = ('-user.donations', '-campaign.donations')
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String)
     paymentmethod = db.Column(db.String)
     amount = db.Column(db.Integer)
     
-    # Foreign keys (many donations belong to one user and one campaign)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=False)
 
     def __repr__(self):
         return f'<Donations {self.id}, {self.title}, {self.paymentmethod}, {self.amount}>'
 
-class Updates(db.Model):
+class Updates(db.Model, SerializerMixin):
     __tablename__ = "updates"
+    
+    serialize_rules = ('-campaign.updates',)
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String)
     description = db.Column(db.String)
     
-    # Foreign key (many updates belong to one campaign)
     campaign_id = db.Column(db.Integer, db.ForeignKey('campaign.id'), nullable=False)
 
     def __repr__(self):
