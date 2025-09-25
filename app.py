@@ -12,7 +12,7 @@ from flask_bcrypt import Bcrypt
 
 migrate = Migrate()
 app = Flask(__name__)
-CORS(app)
+cors = CORS(app, origins="*")
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Fundconnect.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
