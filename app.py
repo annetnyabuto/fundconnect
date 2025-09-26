@@ -12,7 +12,6 @@ from flask_bcrypt import Bcrypt
 
 migrate = Migrate()
 app = Flask(__name__)
-cors = CORS(app, origins="*")
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Fundconnect.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -22,6 +21,8 @@ db.init_app(app)
 migrate.init_app(app, db)
 api=Api(app)
 bcrypt = Bcrypt(app)
+
+CORS(app, origins=['http://localhost:5173'], supports_credentials=True)
 
 def token_required(f):
     @wraps(f)
@@ -292,8 +293,6 @@ class UpdateDetail(Resource):
         db.session.delete(update)
         db.session.commit()
         return {'message': 'Update deleted successfully'}, 200
-
-
 
 api.add_resource(Checksession,'/check', endpoint="check")
 api.add_resource(Login, '/login',endpoint="login")
