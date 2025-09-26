@@ -1,3 +1,4 @@
 # created by virtualenv automatically
 *pyvenv.cfg
 *.db
+test_*.py
