@@ -12,7 +12,11 @@ from flask_bcrypt import Bcrypt
 
 migrate = Migrate()
 app = Flask(__name__)
-
+CORS(app, 
+     origins=['http://localhost:5173', 'http://127.0.0.1:5173'], 
+     allow_headers=['Content-Type', 'Authorization'],
+     methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+     supports_credentials=True)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Fundconnect.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'supersecretkey'
@@ -22,11 +26,11 @@ migrate.init_app(app, db)
 api=Api(app)
 bcrypt = Bcrypt(app)
 
-CORS(app, origins=['http://localhost:5173'], supports_credentials=True)
+#CORS(app, origins=['http://localhost:5173'], supports_credentials=True)
 
 def token_required(f):
     @wraps(f)
-    def decorated(*args, **kwargs):
+    def decorated(self, *args, **kwargs):
         token = request.headers.get('Authorization')
         if not token:
             return {'error': 'Token is missing'}, 401
@@ -43,7 +47,7 @@ def token_required(f):
         except jwt.InvalidTokenError:
             return {'error': 'Invalid token'}, 401
         
-        return f(current_user, *args, **kwargs)
+        return f(self, current_user, *args, **kwargs)
     return decorated
 
 @app.route('/')
@@ -85,6 +89,9 @@ class Users(Resource):
             
         if User.query.filter_by(name=data['name']).first():
             return {'error': 'Username already exists'}, 409
+            
+        if data.get('email') and User.query.filter_by(email=data['email']).first():
+            return {'error': 'Email already exists'}, 409
             
         new_user = User(
             name=data['name'], 
@@ -133,36 +140,40 @@ class Logout(Resource):
     def post(self):
         return {'message': 'Logout successful'}, 200
     
-class Campaigns(Resource):
-    @token_required
-    def get(self, current_user):
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
-        
-        campaigns = Campaign.query.paginate(
-            page=page, per_page=per_page, error_out=False
-        )
-        
-        return {
-            'campaigns': [campaign.to_dict() for campaign in campaigns.items],
-            'total': campaigns.total,
-            'pages': campaigns.pages,
-            'current_page': page
-        }, 200
+class CampaignsResource(Resource):
+    def get(self):
+        campaigns = Campaign.query.all()
+        return [{
+            'id': campaign.id,
+            'category': campaign.category,
+            'description': campaign.description,
+            'targetamount': campaign.targetamount,
+            'raisedamount': campaign.raisedamount,
+            'user_id': campaign.user_id
+        } for campaign in campaigns], 200
     
     @token_required
     def post(self, current_user):
-        data = request.get_json()
-        new_campaign = Campaign(
-            category=data['category'],
-            description=data['description'],
-            targetamount=data['targetamount'],
-            raisedamount=data.get('raisedamount', 0),
-            user_id=current_user.id
-        )
-        db.session.add(new_campaign)
-        db.session.commit()
-        return {'message': 'Campaign created successfully', 'id': new_campaign.id}, 201
+        try:
+            data = request.get_json()
+            if not data:
+                return {'error': 'No data provided'}, 400
+                
+            new_campaign = Campaign(
+                category=data.get('category'),
+                description=data.get('description'),
+                targetamount=data.get('targetamount'),
+                raisedamount=data.get('raisedamount', 0),
+                user_id=current_user.id
+            )
+            
+            db.session.add(new_campaign)
+            db.session.commit()
+            
+            return {'message': 'Campaign created successfully'}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {'error': f'Campaign creation failed: {str(e)}'}, 500
 
 class CampaignDetail(Resource):
     @token_required
@@ -299,7 +310,7 @@ api.add_resource(Login, '/login',endpoint="login")
 api.add_resource(Logout,'/logout', endpoint="logout")
 api.add_resource(Users, '/users')
 api.add_resource(UserDetail, '/users/<int:id>')
-api.add_resource(Campaigns, '/campaigns')
+api.add_resource(CampaignsResource, '/campaigns')
 api.add_resource(CampaignDetail, '/campaigns/<int:id>')
 api.add_resource(DonationsResource, '/donations')
 api.add_resource(DonationDetail, '/donations/<int:id>')
@@ -309,4 +320,4 @@ api.add_resource(UpdatesResource, '/updates')
 api.add_resource(UpdateDetail, '/updates/<int:id>')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=8080)
