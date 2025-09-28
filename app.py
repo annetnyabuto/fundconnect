@@ -9,13 +9,7 @@ from werkzeug.exceptions import HTTPException
 from models import db, User, Campaign, Donations, Updates
 from flask_bcrypt import Bcrypt
 
-# Force import PyJWT correctly
-import sys
-if 'jwt' in sys.modules:
-    del sys.modules['jwt']
-    
-from jwt.api_jwt import encode as jwt_encode, decode as jwt_decode
-from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+import jwt
 
 migrate = Migrate()
 app = Flask(__name__)
@@ -40,13 +34,13 @@ def token_required(f):
         try:
             if token.startswith('Bearer '):
                 token = token[7:]
-            data = jwt_decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+            data = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
             current_user = User.query.get(data['user_id'])
             if not current_user:
                 return {'error': 'Invalid token'}, 401
-        except ExpiredSignatureError:
+        except jwt.ExpiredSignatureError:
             return {'error': 'Token has expired'}, 401
-        except InvalidTokenError:
+        except jwt.InvalidTokenError:
             return {'error': 'Invalid token'}, 401
         
         return f(self, current_user, *args, **kwargs)
@@ -68,7 +62,7 @@ class Login(Resource):
             user = User.query.filter_by(name=name).first()
             
             if user and user.authenticate(password):
-                token = jwt_encode({
+                token = jwt.encode({
                     'user_id': user.id,
                     'exp': datetime.utcnow() + timedelta(hours=24)
                 }, app.config['JWT_SECRET_KEY'], algorithm='HS256')
@@ -152,11 +146,18 @@ class CampaignsResource(Resource):
         campaigns = Campaign.query.all()
         return [{
             'id': campaign.id,
+            'name': campaign.name,
             'category': campaign.category,
             'description': campaign.description,
             'targetamount': campaign.targetamount,
             'raisedamount': campaign.raisedamount,
-            'user_id': campaign.user_id
+            'user_id': campaign.user_id,
+            'user': {
+                'id': campaign.user.id,
+                'name': campaign.user.name,
+                'email': campaign.user.email,
+                'designation': campaign.user.designation
+            }
         } for campaign in campaigns], 200
     
     @token_required
@@ -166,7 +167,14 @@ class CampaignsResource(Resource):
             if not data:
                 return {'error': 'No data provided'}, 400
                 
+            if not data.get('name') or len(data.get('name', '').strip()) == 0:
+                return {'error': 'Campaign name is required'}, 400
+                
+            if len(data.get('name', '')) > 25:
+                return {'error': 'Campaign name must not exceed 25 characters'}, 400
+                
             new_campaign = Campaign(
+                name=data.get('name'),
                 category=data.get('category'),
                 description=data.get('description'),
                 targetamount=data.get('targetamount'),

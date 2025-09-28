@@ -11,10 +11,10 @@ sqlalchemy-serializer = "*"
 flask-restful = "*"
 faker = "*"
 flask-bcrypt = "*"
-pyjwt = "*"
 flask-cors = "*"
 flask-limiter = "*"
 requests = "*"
+pyjwt = "==2.9.0"
 
 [dev-packages]
 
