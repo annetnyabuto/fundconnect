@@ -1,5 +1,4 @@
 import os
-import jwt
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import Flask, request, jsonify
@@ -10,13 +9,17 @@ from werkzeug.exceptions import HTTPException
 from models import db, User, Campaign, Donations, Updates
 from flask_bcrypt import Bcrypt
 
+# Force import PyJWT correctly
+import sys
+if 'jwt' in sys.modules:
+    del sys.modules['jwt']
+    
+from jwt.api_jwt import encode as jwt_encode, decode as jwt_decode
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+
 migrate = Migrate()
 app = Flask(__name__)
-CORS(app, 
-     origins=['http://localhost:5173', 'http://127.0.0.1:5173'], 
-     allow_headers=['Content-Type', 'Authorization'],
-     methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-     supports_credentials=True)
+CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Fundconnect.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -37,13 +40,13 @@ def token_required(f):
         try:
             if token.startswith('Bearer '):
                 token = token[7:]
-            data = jwt.decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+            data = jwt_decode(token, app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
             current_user = User.query.get(data['user_id'])
             if not current_user:
                 return {'error': 'Invalid token'}, 401
-        except jwt.ExpiredSignatureError:
+        except ExpiredSignatureError:
             return {'error': 'Token has expired'}, 401
-        except jwt.InvalidTokenError:
+        except InvalidTokenError:
             return {'error': 'Invalid token'}, 401
         
         return f(self, current_user, *args, **kwargs)
@@ -51,24 +54,33 @@ def token_required(f):
     
 class Login(Resource):
     def post(self):
-        data = request.get_json()
-        name = data.get('name')
-        password = data.get('password')
-        
-        user = User.query.filter_by(name=name).first()
-        
-        if user and user.authenticate(password):
-            token = jwt.encode({
-                'user_id': user.id,
-                'exp': datetime.utcnow() + timedelta(hours=24)
-            }, app.config['JWT_SECRET_KEY'], algorithm='HS256')
+        try:
+            data = request.get_json()
+            if not data:
+                return {'error': 'No data provided'}, 400
+                
+            name = data.get('name')
+            password = data.get('password')
             
-            return {
-                'token': token,
-                'user': user.to_dict()
-            }, 200
-        
-        return {'error': 'Invalid credentials'}, 401
+            if not name or not password:
+                return {'error': 'Name and password required'}, 400
+            
+            user = User.query.filter_by(name=name).first()
+            
+            if user and user.authenticate(password):
+                token = jwt_encode({
+                    'user_id': user.id,
+                    'exp': datetime.utcnow() + timedelta(hours=24)
+                }, app.config['JWT_SECRET_KEY'], algorithm='HS256')
+                
+                return {
+                    'token': token,
+                    'user': user.to_dict()
+                }, 200
+            
+            return {'error': 'Invalid credentials'}, 401
+        except Exception as e:
+            return {'error': f'Login failed: {str(e)}'}, 500
     
 class Users(Resource):
     @token_required
