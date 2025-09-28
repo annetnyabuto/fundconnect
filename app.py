@@ -1,5 +1,4 @@
 import os
-import jwt
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import Flask, request, jsonify
@@ -10,13 +9,12 @@ from werkzeug.exceptions import HTTPException
 from models import db, User, Campaign, Donations, Updates
 from flask_bcrypt import Bcrypt
 
+import jwt
+
 migrate = Migrate()
 app = Flask(__name__)
-CORS(app, 
-     origins=['http://localhost:5173', 'http://127.0.0.1:5173'], 
-     allow_headers=['Content-Type', 'Authorization'],
-     methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-     supports_credentials=True)
+CORS(app)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Fundconnect.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'supersecretkey'
@@ -56,24 +54,33 @@ def home():
     
 class Login(Resource):
     def post(self):
-        data = request.get_json()
-        name = data.get('name')
-        password = data.get('password')
-        
-        user = User.query.filter_by(name=name).first()
-        
-        if user and user.authenticate(password):
-            token = jwt.encode({
-                'user_id': user.id,
-                'exp': datetime.utcnow() + timedelta(hours=24)
-            }, app.config['JWT_SECRET_KEY'], algorithm='HS256')
+        try:
+            data = request.get_json()
+            if not data:
+                return {'error': 'No data provided'}, 400
+                
+            name = data.get('name')
+            password = data.get('password')
             
-            return {
-                'token': token,
-                'user': user.to_dict()
-            }, 200
-        
-        return {'error': 'Invalid credentials'}, 401
+            if not name or not password:
+                return {'error': 'Name and password required'}, 400
+            
+            user = User.query.filter_by(name=name).first()
+            
+            if user and user.authenticate(password):
+                token = jwt.encode({
+                    'user_id': user.id,
+                    'exp': datetime.utcnow() + timedelta(hours=24)
+                }, app.config['JWT_SECRET_KEY'], algorithm='HS256')
+                
+                return {
+                    'token': token,
+                    'user': user.to_dict()
+                }, 200
+            
+            return {'error': 'Invalid credentials'}, 401
+        except Exception as e:
+            return {'error': f'Login failed: {str(e)}'}, 500
     
 class Users(Resource):
     @token_required
@@ -145,11 +152,18 @@ class CampaignsResource(Resource):
         campaigns = Campaign.query.all()
         return [{
             'id': campaign.id,
+            'name': campaign.name,
             'category': campaign.category,
             'description': campaign.description,
             'targetamount': campaign.targetamount,
             'raisedamount': campaign.raisedamount,
-            'user_id': campaign.user_id
+            'user_id': campaign.user_id,
+            'user': {
+                'id': campaign.user.id,
+                'name': campaign.user.name,
+                'email': campaign.user.email,
+                'designation': campaign.user.designation
+            }
         } for campaign in campaigns], 200
     
     @token_required
@@ -159,7 +173,14 @@ class CampaignsResource(Resource):
             if not data:
                 return {'error': 'No data provided'}, 400
                 
+            if not data.get('name') or len(data.get('name', '').strip()) == 0:
+                return {'error': 'Campaign name is required'}, 400
+                
+            if len(data.get('name', '')) > 25:
+                return {'error': 'Campaign name must not exceed 25 characters'}, 400
+                
             new_campaign = Campaign(
+                name=data.get('name'),
                 category=data.get('category'),
                 description=data.get('description'),
                 targetamount=data.get('targetamount'),

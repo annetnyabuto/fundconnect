@@ -1,0 +1,14 @@
+#instance/Fundconnect.db
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# Virtual environment
+.venv/
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd

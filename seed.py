@@ -34,7 +34,8 @@ def seed_data():
         campaigns = []
         for _ in range(8):
             campaign = Campaign(
-                category=random.choice(['Business', 'Health', 'War', 'Animals', 'Charity', 'Education']),
+                name=fake.catch_phrase()[:25],
+                category=random.choice(['Entrepreneurship', 'Health', 'War', 'Animals', 'Charity', 'Education']),
                 description=fake.text(max_nb_chars=200),
                 targetamount=fake.random_int(min=1000, max=50000),
                 raisedamount=fake.random_int(min=0, max=25000),

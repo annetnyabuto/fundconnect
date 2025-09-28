@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 faker = "*"
 flask-bcrypt = "*"
-pyjwt = "*"
 flask-cors = "*"
 flask-limiter = "*"
 requests = "*"
@@ -17,6 +16,7 @@ flask-sqlalchemy = "*"
 flask-migrate = "*"
 flask-restful = "*"
 sqlalchemy-serializer = "*"
+pyjwt = "==2.9.0"
 
 [dev-packages]
 

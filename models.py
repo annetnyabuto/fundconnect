@@ -72,6 +72,7 @@ class Campaign(db.Model, SerializerMixin):
     serialize_rules = ('-user.campaigns', '-donations.campaign', '-updates.campaign')
 
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(25), nullable=False)
     category = db.Column(db.String)
     description = db.Column(db.String)
     targetamount = db.Column(db.Integer)
@@ -83,7 +84,7 @@ class Campaign(db.Model, SerializerMixin):
     updates = db.relationship('Updates', backref='campaign', lazy=True)
 
     def __repr__(self):
-        return f'<Campaign {self.id}, {self.category}, {self.description}, {self.targetamount}, {self.raisedamount}>'
+        return f'<Campaign {self.id}, {self.name}, {self.category}, {self.description}, {self.targetamount}, {self.raisedamount}>'
 
 class Donations(db.Model, SerializerMixin):
     __tablename__ = "donations"
