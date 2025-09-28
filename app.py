@@ -13,7 +13,11 @@ import jwt
 
 migrate = Migrate()
 app = Flask(__name__)
-CORS(app)
+CORS(app, 
+     origins=['http://localhost:5173', 'http://127.0.0.1:5173'], 
+     allow_headers=['Content-Type', 'Authorization'],
+     methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+     supports_credentials=True)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///Fundconnect.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
