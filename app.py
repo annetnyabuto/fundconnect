@@ -32,7 +32,6 @@ migrate.init_app(app, db)
 api=Api(app)
 bcrypt = Bcrypt(app)
 
-#CORS(app, origins=['http://localhost:5173'], supports_credentials=True)
 
 def token_required(f):
     @wraps(f)
