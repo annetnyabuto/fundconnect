@@ -17,6 +17,8 @@ CORS(app,
      origins=[
          'http://localhost:5173', 
          'http://127.0.0.1:5173',
+         'http://localhost:3000',
+         'http://127.0.0.1:3000',
          'https://fund-connect-frontend.onrender.com'
      ],
      allow_headers=['Content-Type', 'Authorization'],
@@ -241,26 +243,36 @@ class DonationsResource(Resource):
     
     @token_required
     def post(self, current_user):
-        data = request.get_json()
-        
-        if not data.get('amount') or data['amount'] <= 0:
-            return {'error': 'Valid donation amount required'}, 400
+        try:
+            data = request.get_json()
             
-        campaign = Campaign.query.get_or_404(data['campaign_id'])
-        
-        new_donation = Donations(
-            title=data['title'],
-            paymentmethod=data['paymentmethod'],
-            amount=data['amount'],
-            user_id=current_user.id,
-            campaign_id=data['campaign_id']
-        )
-        
-        campaign.raisedamount = (campaign.raisedamount or 0) + data['amount']
-        
-        db.session.add(new_donation)
-        db.session.commit()
-        return {'message': 'Donation created successfully', 'id': new_donation.id}, 201
+            if not data:
+                return {'error': 'No data provided'}, 400
+            
+            if not data.get('amount') or data['amount'] <= 0:
+                return {'error': 'Valid donation amount required'}, 400
+                
+            if not data.get('campaign_id'):
+                return {'error': 'Campaign ID is required'}, 400
+                
+            campaign = Campaign.query.get_or_404(data['campaign_id'])
+            
+            new_donation = Donations(
+                title=data.get('title'),
+                paymentmethod=data.get('paymentmethod'),
+                amount=data['amount'],
+                user_id=current_user.id,
+                campaign_id=data['campaign_id']
+            )
+            
+            campaign.raisedamount = (campaign.raisedamount or 0) + data['amount']
+            
+            db.session.add(new_donation)
+            db.session.commit()
+            return {'message': 'Donation created successfully', 'id': new_donation.id}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {'error': f'Donation creation failed: {str(e)}'}, 500
 
 class DonationDetail(Resource):
     @token_required

@@ -1,0 +1,195 @@
+# Fund Connect API
+
+A modern Flask REST API backend that powers a crowdfunding platform, connecting people with supporters to fund innovative projects and meaningful causes.
+
+## Features
+
+### Core Functionality
+- **Campaign Management**: Complete CRUD operations for fundraising campaigns with goals, descriptions, and categories
+- **Secure Donations**: JWT-authenticated donation system with real-time progress tracking
+- **User Authentication**: Comprehensive registration and login system with bcrypt password hashing
+- **Campaign Updates**: Allow campaign creators to post updates for supporters
+- **Real-time Data**: Automatic campaign amount updates when donations are made
+
+### Security & Performance
+- **JWT Authentication**: Secure token-based authentication system
+- **Password Security**: bcrypt hashing for user passwords
+- **CORS Support**: Full cross-origin resource sharing for frontend integration
+- **Input Validation**: Comprehensive request validation and error handling
+- **Database Relationships**: Proper foreign key relationships and data integrity
+
+### Categories Supported
+- Entrepreneurship
+- Education
+- Healthcare
+- Charity
+- Animals
+- Wars/Humanitarian Aid
+
+## Technology Stack
+
+### Backend Framework
+- **Flask** with Flask-RESTful for API endpoints
+- **SQLAlchemy** for ORM and database management
+- **Flask-Migrate** for database migrations
+- **Flask-CORS** for cross-origin requests
+- **Flask-Bcrypt** for password hashing
+
+### Database & Authentication
+- **SQLite** (development) / **PostgreSQL** (production)
+- **JWT** tokens for stateless authentication
+- **SQLAlchemy-Serializer** for JSON serialization
+
+## Getting Started
+
+### Prerequisites
+- Python 3.8 or higher
+- pipenv for dependency management
+- SQLite (development) or PostgreSQL (production)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd Fundconnect
+```
+
+2. Install dependencies:
+```bash
+pipenv install
+```
+
+3. Activate virtual environment:
+```bash
+pipenv shell
+```
+
+4. Initialize database:
+```bash
+flask db init
+flask db migrate -m "Initial migration"
+flask db upgrade
+```
+
+5. (Optional) Seed database with sample data:
+```bash
+python seed.py
+```
+
+6. Start the development server:
+```bash
+python app.py
+```
+
+7. API will be available at `http://127.0.0.1:8080`
+
+## Project Structure
+
+```
+Fundconnect/
+├── migrations/          # Database migration files
+├── instance/           # SQLite database storage
+├── app.py             # Main Flask application
+├── models.py          # SQLAlchemy database models
+├── seed.py            # Database seeding script
+├── test_api.py        # API testing script
+├── Pipfile            # Python dependencies
+├── requirements.txt   # Production dependencies
+└── README             # This file
+```
+
+## API Endpoints
+
+### Authentication
+- `POST /login` - User login with name/password
+- `POST /logout` - User logout
+- `GET /check` - Check current session status
+- `POST /users` - User registration
+
+### User Management
+- `GET /users` - Get all users (authenticated)
+- `GET /users/<id>` - Get user by ID
+- `PATCH /users/<id>` - Update user information
+- `DELETE /users/<id>` - Delete user account
+
+### Campaign Management
+- `GET /campaigns` - Get all campaigns (public)
+- `POST /campaigns` - Create new campaign (authenticated)
+- `GET /campaigns/<id>` - Get campaign by ID
+- `PATCH /campaigns/<id>` - Update campaign (authenticated)
+- `DELETE /campaigns/<id>` - Delete campaign (authenticated)
+
+### Donation System
+- `GET /donations` - Get all donations (authenticated)
+- `POST /donations` - Make a donation (authenticated)
+- `GET /donations/<id>` - Get donation by ID
+- `DELETE /donations/<id>` - Delete donation
+- `GET /campaigns/<id>/donations` - Get donations for specific campaign
+- `GET /users/<id>/donations` - Get donations by specific user
+
+### Campaign Updates
+- `GET /updates` - Get all updates (authenticated)
+- `POST /updates` - Create campaign update (authenticated)
+- `GET /updates/<id>` - Get update by ID
+- `PATCH /updates/<id>` - Update campaign update
+- `DELETE /updates/<id>` - Delete update
+
+## Database Models
+
+ User Model
+
+ Campaign Model
+
+ Donations Model
+
+ Updates Model
+
+
+## Development
+
+### Database Migrations
+```bash
+# Create new migration
+flask db migrate -m "Description of changes"
+
+# Apply migrations
+flask db upgrade
+
+# Rollback migration
+flask db downgrade
+```
+
+### Environment Configuration
+Create `.env` file for production:
+```
+FLASK_ENV=production
+DATABASE_URL=postgresql://username:password@host:port/database
+JWT_SECRET_KEY=your-super-secret-key
+```
+
+## Deployment
+
+### Render Deployment
+1. Connect GitHub repository to Render
+2. Set environment variables in dashboard
+3. Add PostgreSQL database add-on
+4. Deploy with `gunicorn app:app`
+
+### Production Setup
+```bash
+pip install -r requirements.txt
+flask db upgrade
+gunicorn app:app
+```
+
+## Frontend Integration
+
+This API is designed to work with a React frontend. Expected frontend endpoints:
+- Frontend should run on `http://localhost:5173` (Vite default)
+- CORS is configured for common development ports
+- JWT tokens should be stored securely and sent in Authorization headers
+
+## License
+
+This project is licensed under the MIT License.
